@@ -1,8 +1,10 @@
 #!/usr/bin/perl
 
+use v5.10;
 use strict;
 use warnings FATAL => 'all';
 
+use Dictionary;
 use GraphAlgs;
 
 use Data::Dumper qw/Dumper/;
@@ -13,7 +15,7 @@ use XML::Twig;
 #-------------------------------------------------------------------------------
 
 my $format = 'svg';
-my $base_path = 'graphs';
+my $base_path = 'graphs/';
 
 $, = ",";
 
@@ -21,15 +23,31 @@ my @files = @ARGV;
 
 my $g;
 my $dot;
+my $disc;
+my $re_disc;
+my $re_conj = qr/\ (and|or|but)\ /;
 
 for (@files) {
-	my ($name) = m|([^/\.]+)\..+$|;
+	my ($name, $book_no) = m|((\d+)\w+)\..+$|;
 # 	print $name;
-	my $dot_file = $base_path. "/" .$name. ".dot";
-	open DOT, ">", $dot_file;
+	
+	given ( $book_no ) {
+		when ( 1  <= $_ and $_ <= 5  ) { $disc = $Dictionary::kai_disc          }
+		when ( 6  <= $_ and $_ <= 12 ) { $disc = $Dictionary::magnakai_disc     }
+		when ( 13 <= $_ and $_ <= 20 ) { $disc = $Dictionary::grand_master_disc }
+		default                        { die "FIXME: book > 20\n"               }
+	}
+	
+	my $re_disc_str .= "(";
+	$re_disc_str .= join "|", keys %$disc;
+	$re_disc_str .= ")";
+	$re_disc = qr/$re_disc_str/;
 	
 	my $time = time;
 	$g = {};
+	
+	my $dot_file = $base_path .$name. ".dot";
+	open DOT, ">", $dot_file;
 	
 	$time = time;
 	XML::Twig->new(
@@ -39,10 +57,12 @@ for (@files) {
 		}
 	)->parsefile($_);
 	print "Parsing: ". (time - $time) ."\n";
+	
 	close DOT;
 	
 	$time = time;
-	run join( " ", ("dot", "-T".$format, $dot_file, "-o".$base_path."/".$name.".".$format) );
+# 	run join( " ", ("dot", "-T".$format, $dot_file, "-o".$base_path.$name.".".$format) );
+	system "dot", "-T".$format, $dot_file, "-o".$base_path.$name.".".$format;
 # 	run \@cmd;
 	print "Dot: ". (time - $time) ."\n";
 	
@@ -53,7 +73,7 @@ for (@files) {
 	print "SCC: ". (time - $time) ."\n";
 }
 
-<STDIN>;
+# <STDIN>;
 
 #-------------------------------------------------------------------------------
 
@@ -99,6 +119,8 @@ sub section {
 				my %edge_attrs;
 				push @{ $g->{$id} }, $idref;
 
+				find_disc($_, \%edge_attrs);
+
 				print_edge($id, $idref, %edge_attrs); 
 			} else { # should be @choices == 1
 				$node_attrs{color} = 'crimson';
@@ -116,6 +138,23 @@ sub section {
 	print_node($id, %node_attrs);
 
 	$elt->purge;
+}
+
+sub find_disc {
+	my ($choice, $edge_attrs) = @_;
+	
+	my $text = $choice->text;
+	my @discs = $text =~ /$re_disc/g;
+	return '' unless @discs;
+	
+	my @conj = $text =~ /$re_conj/g;
+	my $conj = $conj[0];
+	$conj //= ''; # empty string should be iff @discs == 1
+	print "1 dics: " .$choice->text,"\n" if $conj and @discs == 1;
+	print "More conj: " .$choice->text,"\n" if @conj > 1;
+	$edge_attrs->{label}     = '"'. join( " $conj ", @$disc{@discs} ) .'"';
+	$edge_attrs->{color}     = 'green';
+	$edge_attrs->{fontcolor} = 'green';
 }
 
 sub print_node {
