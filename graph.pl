@@ -26,11 +26,13 @@ my $dot;
 my $disc;
 my $rank;
 my $re_disc_rank;
-my $re_conj = qr/\ (and|or|but)\ /;
+my $re_disc_rank_conj;
+my $re_conj_str = "(\ (and|or|but|not)\ |,\ )";
+my @conj = (" and ", " or ", " but ", " not ", ", "); 
 
 for (@files) {
 	my ($name, $book_no) = m|((\d+)\w+)\..+$|;
-# 	print $name;
+# 	print $book_no, $name;
 	
 	given ( $book_no ) {
 		when ( 1  <= $_ and $_ <= 5  ) {
@@ -48,13 +50,14 @@ for (@files) {
 		default { print "FIXME: book > 20\n"; next }
 	}
 	
-	my $re_disc_rank_str .= "(";
-	$re_disc_rank_str .= join "|", keys %$disc, keys %$rank;
+	my $re_disc_rank_str = "(" . join "|", keys %$disc, keys %$rank;
+	my $re_disc_rank_conj_str =
+		join( "|", $re_disc_rank_str, keys %$Dictionary::conj ) . ")";
 	$re_disc_rank_str .= ")";
 	$re_disc_rank = qr/$re_disc_rank_str/;
+	$re_disc_rank_conj = qr/$re_disc_rank_conj_str/;
 	
 	my $time = time;
-	$g = {};
 	
 	my $dot_file = $base_path .$name. ".dot";
 	open DOT, ">", $dot_file;
@@ -62,7 +65,7 @@ for (@files) {
 	$time = time;
 	XML::Twig->new(
 		twig_roots => {
-			'/gamebook/meta/title'                         => \&title  ,
+			'/gamebook/meta/title'                         => \&title,
 			'section[ @class="numbered" and @id=~/sect/ ]' => \&section,
 		}
 	)->parsefile($_);
@@ -89,7 +92,7 @@ for (@files) {
 
 # init .dot file
 sub title {
-	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N", ordering="out"]\ngraph []\n/;
+	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N"]\ngraph []\n/;
 	
 	$_->purge;
 }
@@ -153,19 +156,44 @@ sub section {
 
 sub find_disc_rank {
 	my ($choice, $edge_attrs, $found_disc_rank) = @_;
-	
+
 	my $text = $choice->text;
-	my @discs_ranks = $text =~ /$re_disc_rank/g;
+	my $skip_disc_rank = 0;
+	my @discs_ranks;
+	my %conj_dict;
+	while ( $text =~ /$re_disc_rank_conj/og ) { # regexp is of the form (x|y|...)
+		if ( $1 =~ /$re_disc_rank/ ) {
+			if ( $skip_disc_rank ) {
+# 				print $text . "\n";
+				$skip_disc_rank = 0;
+			} else {
+				push @discs_ranks, $1;
+			}
+		} elsif ( $1 =~ /(not|neither|nor|but|yet)/ ) { # negative means to skip next disc_rank
+			$skip_disc_rank = 1;
+		} elsif ( @discs_ranks ) { # ignore conjunctions before first disc_rank
+			# possibly rewrite existing value so that only last one is valid
+			$conj_dict{ scalar @discs_ranks } = $1;
+		}
+	}
+
 	return '' unless @discs_ranks;
-	
-	my @conj = $text =~ /$re_conj/g;
-	my $conj = $conj[0];
-	$conj //= ''; # empty string should be iff @discs == 1
-	print "1 dics: " .$choice->text,"\n" if $conj and @discs_ranks == 1;
-	print "More conj: " .$choice->text,"\n" if @conj > 1;
+
+	for ( keys %conj_dict ) { # ignore conjunctions after last disc_rank
+		delete $conj_dict{$_} unless $_ < @discs_ranks;
+	}
+	my $def_conj = ( grep { $_ eq ' or ' } values %conj_dict ) ? ' or ' : ' and ';
+	print $text . $def_conj . "\n";
+
 	my @disc_rank_values;
 	push @disc_rank_values, $disc->{$_} // $rank->{$_} for @discs_ranks;
-	$edge_attrs->{label}     = '"'. join( " $conj ", @disc_rank_values ) .'"';
+	my $label = $disc_rank_values[0];
+	for ( 1 .. $#disc_rank_values ) {
+		$label .= $conj_dict{$_} // $def_conj;
+		$label .= $disc_rank_values[$_];
+	}
+	print $text . "\n" if @disc_rank_values > 2;
+	$edge_attrs->{label}     = '"' .$label. '"';
 	$edge_attrs->{color}     = 'green';
 	$edge_attrs->{fontcolor} = 'green';
 }

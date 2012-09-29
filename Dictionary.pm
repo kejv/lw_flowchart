@@ -71,3 +71,15 @@ our $grand_master_rank = {
 	'Grand Crown'        => 19,
 	'Sun Prince'         => 20,
 };
+
+# LOGICAL CONJUNCTIONS
+
+our $conj = {
+	' and ' => undef,
+	' or '  => undef,
+	' but ' => undef,
+	' not ' => undef,
+	' nor ' => undef,
+	' neither ' => undef,
+	' yet ' => undef,
+};
