@@ -1,5 +1,7 @@
 package Dictionary;
 
+# DISCIPLINES
+
 our $kai_disc = {
 	'Camouflage'       => 'Cam',
 	'Hunting'          => 'Hun',
@@ -39,4 +41,33 @@ our $grand_master_disc = {
 	'Telegnosis'          => 'Tel',
 	'Magi-magic'          => 'Mag',
 	'Kai-alchemy'         => 'Kal',
+};
+
+# LEVELS OF TRAINING
+# the value indicates number of book where you can first reach this rank
+
+our $kai_rank = {
+	'Aspirant' => 2,
+	'Guardian' => 3,
+	'Warmarn'  => 4, # Journeyman unused
+	'Savant'   => 5,
+};
+
+our $magnakai_rank = {
+	'Primate'     => 7,
+	'Tutelary'    => 8,
+	'Principalin' => 9,
+	'Mentora'     => 10,
+	'Scion-kai'   => 11,
+	'Archmaster'  => 12,
+};
+
+our $grand_master_rank = {
+	'Kai Grand Guardian' => 14,
+	'Sun Knight'         => 15,
+	'Sun Lord'           => 16,
+	'Sun Thane'          => 17,
+	'Grand Thane'        => 18,
+	'Grand Crown'        => 19,
+	'Sun Prince'         => 20,
 };

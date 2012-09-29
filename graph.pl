@@ -24,7 +24,8 @@ my @files = @ARGV;
 my $g;
 my $dot;
 my $disc;
-my $re_disc;
+my $rank;
+my $re_disc_rank;
 my $re_conj = qr/\ (and|or|but)\ /;
 
 for (@files) {
@@ -32,16 +33,25 @@ for (@files) {
 # 	print $name;
 	
 	given ( $book_no ) {
-		when ( 1  <= $_ and $_ <= 5  ) { $disc = $Dictionary::kai_disc          }
-		when ( 6  <= $_ and $_ <= 12 ) { $disc = $Dictionary::magnakai_disc     }
-		when ( 13 <= $_ and $_ <= 20 ) { $disc = $Dictionary::grand_master_disc }
-		default                        { die "FIXME: book > 20\n"               }
+		when ( 1  <= $_ and $_ <= 5  ) {
+			$disc = $Dictionary::kai_disc;
+			$rank = $Dictionary::kai_rank;
+		}
+		when ( 6  <= $_ and $_ <= 12 ) {
+			$disc = $Dictionary::magnakai_disc;
+			$rank = $Dictionary::magnakai_rank;
+		}
+		when ( 13 <= $_ and $_ <= 20 ) {
+			$disc = $Dictionary::grand_master_disc;
+			$rank = $Dictionary::grand_master_rank;
+		}
+		default { print "FIXME: book > 20\n"; next }
 	}
 	
-	my $re_disc_str .= "(";
-	$re_disc_str .= join "|", keys %$disc;
-	$re_disc_str .= ")";
-	$re_disc = qr/$re_disc_str/;
+	my $re_disc_rank_str .= "(";
+	$re_disc_rank_str .= join "|", keys %$disc, keys %$rank;
+	$re_disc_rank_str .= ")";
+	$re_disc_rank = qr/$re_disc_rank_str/;
 	
 	my $time = time;
 	$g = {};
@@ -79,7 +89,7 @@ for (@files) {
 
 # init .dot file
 sub title {
-	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N"]\n/;
+	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N", ordering="out"]\ngraph []\n/;
 	
 	$_->purge;
 }
@@ -112,6 +122,7 @@ sub section {
 	}
 
 	if ( @choices ) {
+		my @found_disc_rank;
 		for ( @choices ) {
 			my $attr_idref = $_->att('idref');
 			if ( defined $attr_idref ) {
@@ -119,7 +130,7 @@ sub section {
 				my %edge_attrs;
 				push @{ $g->{$id} }, $idref;
 
-				find_disc($_, \%edge_attrs);
+				find_disc_rank($_, \%edge_attrs, \@found_disc_rank);
 
 				print_edge($id, $idref, %edge_attrs); 
 			} else { # should be @choices == 1
@@ -140,19 +151,21 @@ sub section {
 	$elt->purge;
 }
 
-sub find_disc {
-	my ($choice, $edge_attrs) = @_;
+sub find_disc_rank {
+	my ($choice, $edge_attrs, $found_disc_rank) = @_;
 	
 	my $text = $choice->text;
-	my @discs = $text =~ /$re_disc/g;
-	return '' unless @discs;
+	my @discs_ranks = $text =~ /$re_disc_rank/g;
+	return '' unless @discs_ranks;
 	
 	my @conj = $text =~ /$re_conj/g;
 	my $conj = $conj[0];
 	$conj //= ''; # empty string should be iff @discs == 1
-	print "1 dics: " .$choice->text,"\n" if $conj and @discs == 1;
+	print "1 dics: " .$choice->text,"\n" if $conj and @discs_ranks == 1;
 	print "More conj: " .$choice->text,"\n" if @conj > 1;
-	$edge_attrs->{label}     = '"'. join( " $conj ", @$disc{@discs} ) .'"';
+	my @disc_rank_values;
+	push @disc_rank_values, $disc->{$_} // $rank->{$_} for @discs_ranks;
+	$edge_attrs->{label}     = '"'. join( " $conj ", @disc_rank_values ) .'"';
 	$edge_attrs->{color}     = 'green';
 	$edge_attrs->{fontcolor} = 'green';
 }
