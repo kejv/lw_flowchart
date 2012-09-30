@@ -4,7 +4,9 @@ use v5.10;
 use strict;
 use warnings FATAL => 'all';
 
-use Dictionary;
+use Dictionary::Kai;
+use Dictionary::Magnakai;
+use Dictionary::Grandmaster;
 use GraphAlgs;
 
 use Data::Dumper qw/Dumper/;
@@ -24,46 +26,24 @@ my @files = @ARGV;
 my $g;
 my %in_vertices;
 my %out_vertices;
-my $dot;
-my $disc;
-my $rank;
-my $re_disc_rank;
-my $re_disc_rank_conj;
-my $re_conj_str = "(\ (and|or|but|not)\ |,\ )";
-my @conj = (" and ", " or ", " but ", " not ", ", "); 
+my $dict_obj; # book specific (rank-, discpline-dictionoaries, regexs etc.)
 
 for (@files) {
 	my ($name, $book_no) = m|((\d+)\w+)\..+$|;
 # 	print $book_no, $name;
-	
+
 	given ( $book_no ) {
-		when ( 1  <= $_ and $_ <= 5  ) {
-			$disc = $Dictionary::kai_disc;
-			$rank = $Dictionary::kai_rank;
-		}
-		when ( 6  <= $_ and $_ <= 12 ) {
-			$disc = $Dictionary::magnakai_disc;
-			$rank = $Dictionary::magnakai_rank;
-		}
-		when ( 13 <= $_ and $_ <= 20 ) {
-			$disc = $Dictionary::grand_master_disc;
-			$rank = $Dictionary::grand_master_rank;
-		}
+		when ( 1  <= $_ and $_ <= 5  ) { $dict_obj = new Dictionary::Kai }
+		when ( 6  <= $_ and $_ <= 12 ) { $dict_obj = new Dictionary::Magnakai }
+		when ( 13 <= $_ and $_ <= 20 ) { $dict_obj = new Dictionary::Grandmaster }
 		default { print "FIXME: book > 20\n"; next }
 	}
-	
-	my $re_disc_rank_str = "(" . join "|", keys %$disc, keys %$rank;
-	my $re_disc_rank_conj_str =
-		join( "|", $re_disc_rank_str, keys %$Dictionary::conj ) . ")";
-	$re_disc_rank_str .= ")";
-	$re_disc_rank = qr/$re_disc_rank_str/;
-	$re_disc_rank_conj = qr/$re_disc_rank_conj_str/;
-	
+
 	my $time = time;
-	
+
 	my $dot_file = $base_path .$name. ".dot";
 	open DOT, ">", $dot_file;
-	
+
 	$time = time;
 	$g = {}; # reset graph
 	%in_vertices = ();
@@ -108,8 +88,9 @@ for (@files) {
 
 # init .dot file
 sub title {
-	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N", ordering="out"]\n/;
-	
+	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N"]\n/;
+# 	print DOT qq/\tnode [ordering="out"]\n/;
+
 	$_->purge;
 }
 
@@ -141,9 +122,8 @@ sub section {
 	}
 
 	if ( @choices ) {
-		my @found_disc_rank;
-		for ( @choices ) {
-			my $attr_idref = $_->att('idref');
+		for my $choice ( @choices ) {
+			my $attr_idref = $choice->att('idref');
 			if ( defined $attr_idref ) {
 				my ($idref) = $attr_idref =~ /sect(\d+)/;
 				my %edge_attrs;
@@ -151,7 +131,7 @@ sub section {
 				undef $in_vertices{$idref};
 				undef $out_vertices{$id};
 
-				find_disc_rank($_, \%edge_attrs, \@found_disc_rank);
+				find_disc_rank($choice, \%edge_attrs, $dict_obj);
 
 				print_edge($id, $idref, %edge_attrs); 
 			} elsif ( @choices == 1 ) {
@@ -182,43 +162,53 @@ sub section {
 }
 
 sub find_disc_rank {
-	my ($choice, $edge_attrs, $found_disc_rank) = @_;
+	my ($choice, $edge_attrs, $dict_obj) = @_;
 
 	my $text = $choice->text;
 	my $skip_disc_rank = 0;
 	my @discs_ranks;
-	my %conj_dict;
-	while ( $text =~ /$re_disc_rank_conj/og ) { # regexp is of the form (x|y|...)
-		if ( $1 =~ /$re_disc_rank/ ) {
+	my %conj_pos;
+	my $disc = $dict_obj->disc;
+	my $rank = $dict_obj->rank;
+	my $re_choice = $dict_obj->re_choice;
+
+	# find choice items (disc, ranks) in choice and put corresponding
+	# conjunction as a value in a hash (indexed by ordering of choice items)
+	while ( $text =~ /$re_choice/og ) { # regexp is of the form (x|y|...)
+		if ( exists $disc->{$1} or exists $rank->{$1} ) {
 			if ( $skip_disc_rank ) {
-# 				print $text . "\n";
+				print $text . "\n";
 				$skip_disc_rank = 0;
 			} else {
 				push @discs_ranks, $1;
 			}
-		} elsif ( $1 =~ /(not|neither|nor|but|yet)/ ) { # negative means to skip next disc_rank
+		} elsif ( exists $dict_obj->neg_conj->{$1} ) { # negative means to skip next disc_rank
 			$skip_disc_rank = 1;
 		} elsif ( @discs_ranks ) { # ignore conjunctions before first disc_rank
 			# possibly rewrite existing value so that only last one is valid
-			$conj_dict{ scalar @discs_ranks } = $1;
+			$conj_pos{ scalar @discs_ranks } = $1;
 		}
 	}
 
 	return '' unless @discs_ranks;
 
-	for ( keys %conj_dict ) { # ignore conjunctions after last disc_rank
-		delete $conj_dict{$_} unless $_ < @discs_ranks;
+	for ( keys %conj_pos ) { # ignore conjunctions after last disc_rank
+		delete $conj_pos{$_} unless $_ < @discs_ranks;
 	}
-	my $def_conj = ( grep { $_ eq ' or ' } values %conj_dict ) ? ' or ' : ' and ';
-	print $text . $def_conj . "\n";
+	# defalut conj will be printed instead of commas in the choice text
+	my $default_conj = ( grep { $_ eq ' or ' } values %conj_pos ) ? ' or ' : ' and ';
+	print $text . $default_conj . "\n";
 
+	# get the abbrevs for the choice items
 	my @disc_rank_values;
 	push @disc_rank_values, $disc->{$_} // $rank->{$_} for @discs_ranks;
 	my $label = $disc_rank_values[0];
+	# join choice items together using conjs
 	for ( 1 .. $#disc_rank_values ) {
-		$label .= $conj_dict{$_} // $def_conj;
+		$label .= $conj_pos{$_} // $default_conj;
 		$label .= $disc_rank_values[$_];
 	}
+
 	print $text . "\n" if @disc_rank_values > 2;
 	$edge_attrs->{label}     = '"' .$label. '"';
 	$edge_attrs->{color}     = 'green';

@@ -1,85 +1,65 @@
 package Dictionary;
 
-# DISCIPLINES
+use Moose;
 
-our $kai_disc = {
-	'Camouflage'       => 'Cam',
-	'Hunting'          => 'Hun',
-	'Sixth Sense'      => 'SiS',
-	'Tracking'         => 'Tra',
-	'Healing'          => 'Hea',
-	'Weaponskill'      => 'Wsk',
-	'Mindshield'       => 'Msh',
-	'Mindblast'        => 'Mbl',
-	'Animal Kinship'   => 'AnK',
-	'Mind Over Matter' => 'MOM',
-};
+# ATTRIBUTES
 
-our $magnakai_disc = {
-	'Weaponmastery'  => 'Wma',
-	'Animal Control' => 'AnC',
-	'Curing'         => 'Cur',
-	'Invisibility'   => 'Inv',
-	'Huntmastery'    => 'Hma',
-	'Pathsmanship'   => 'Pma',
-	'Psi-surge'      => 'Psu',
-	'Psi-screen'     => 'Psc',
-	'Nexus'          => 'Nex',
-	'Divination'     => 'Div',
-};
+for my $attr ( qw/disc rank neg_conj conj/ ) {
+	my $builder = '_build_' . $attr;
+	has $attr => (
+		is => 'ro',
+		isa => 'HashRef',
+		lazy => 1,
+		builder => $builder,
+	);
+}
 
-our $grand_master_disc = {
-	'Grand Weaponmastery' => 'GWm',
-	'Animal Mastery'      => 'AnM',
-	'Deliverance'         => 'Del',
-	'Assimilance'         => 'Asm',
-	'Grand Huntmastery'   => 'GHm',
-	'Grand Pathsmanship'  => 'GPm',
-	'Kai-surge'           => 'Ksu',
-	'Kai-screen'          => 'Ksc',
-	'Grand Nexus'         => 'GNe',
-	'Telegnosis'          => 'Tel',
-	'Magi-magic'          => 'Mag',
-	'Kai-alchemy'         => 'Kal',
-};
+has 're_choice' => (
+	is => 'ro',
+	isa => 'RegexpRef',
+	lazy => 1,
+	builder => '_build_re_choice',
+);
 
-# LEVELS OF TRAINING
-# the value indicates number of book where you can first reach this rank
+# BUILDERS
 
-our $kai_rank = {
-	'Aspirant' => 2,
-	'Guardian' => 3,
-	'Warmarn'  => 4, # Journeyman unused
-	'Savant'   => 5,
-};
+sub _build_disc {
+	{}
+}
 
-our $magnakai_rank = {
-	'Primate'     => 7,
-	'Tutelary'    => 8,
-	'Principalin' => 9,
-	'Mentora'     => 10,
-	'Scion-kai'   => 11,
-	'Archmaster'  => 12,
-};
+sub _build_rank {
+	{}
+}
 
-our $grand_master_rank = {
-	'Kai Grand Guardian' => 14,
-	'Sun Knight'         => 15,
-	'Sun Lord'           => 16,
-	'Sun Thane'          => 17,
-	'Grand Thane'        => 18,
-	'Grand Crown'        => 19,
-	'Sun Prince'         => 20,
-};
+sub _build_neg_conj {
+	{
+		' but '     => undef,
+		' not '     => undef,
+		' nor '     => undef,
+		' neither ' => undef,
+		' yet '     => undef,
+	}
+}
 
-# LOGICAL CONJUNCTIONS
+sub _build_conj {
+	{
+		' and ' => undef,
+		' or '  => undef,
+		%{ shift->neg_conj }
+	}
+}
 
-our $conj = {
-	' and ' => undef,
-	' or '  => undef,
-	' but ' => undef,
-	' not ' => undef,
-	' nor ' => undef,
-	' neither ' => undef,
-	' yet ' => undef,
-};
+sub _build_re_choice {
+	my $self = shift;
+
+	my $re = "(";
+	$re .= join "|", map keys %{ $self->$_ }, qw/disc rank conj/;
+	$re .= ")";
+
+	return qr/$re/;
+}
+
+no Moose;
+
+1;
+
