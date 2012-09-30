@@ -22,6 +22,8 @@ $, = ",";
 my @files = @ARGV;
 
 my $g;
+my %in_vertices;
+my %out_vertices;
 my $dot;
 my $disc;
 my $rank;
@@ -63,6 +65,9 @@ for (@files) {
 	open DOT, ">", $dot_file;
 	
 	$time = time;
+	$g = {}; # reset graph
+	%in_vertices = ();
+	%out_vertices = ();
 	XML::Twig->new(
 		twig_roots => {
 			'/gamebook/meta/title'                         => \&title,
@@ -84,6 +89,17 @@ for (@files) {
 		print @$SCC,"\n" if @$SCC > 1;
 	}
 	print "SCC: ". (time - $time) ."\n";
+	
+	print "No_in_vertices: ";
+	for (1 .. 350) {
+		print $_ . "," unless exists $in_vertices{$_};
+	}
+	print "\n";
+	print "No_out_vertices: ";
+	for (1 .. 350) {
+		print $_ . "," unless exists $out_vertices{$_};
+	}
+	print "\n--------------------------------------------------------\n";
 }
 
 # <STDIN>;
@@ -92,7 +108,7 @@ for (@files) {
 
 # init .dot file
 sub title {
-	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N"]\ngraph []\n/;
+	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N", ordering="out"]\n/;
 	
 	$_->purge;
 }
@@ -132,19 +148,30 @@ sub section {
 				my ($idref) = $attr_idref =~ /sect(\d+)/;
 				my %edge_attrs;
 				push @{ $g->{$id} }, $idref;
+				undef $in_vertices{$idref};
+				undef $out_vertices{$id};
 
 				find_disc_rank($_, \%edge_attrs, \@found_disc_rank);
 
 				print_edge($id, $idref, %edge_attrs); 
-			} else { # should be @choices == 1
+			} elsif ( @choices == 1 ) {
+				print "Death? $id\n";
 				$node_attrs{color} = 'crimson';
 				$node_attrs{shape} = 'invtriangle';
+			} else {
+				if ( @footnotes ) {
+					print "Riddle with more choices? $id\n"; # correct, 9/314?, answer
+				} else {
+					print "Death with more choices? $id\n";
+				}
 			}
 		}
 	} elsif ( @footnotes ) {
+		print "Riddle? $id\n";
 		$node_attrs{color} = 'orange';
 		$node_attrs{shape} = 'triangle';
 	} else {
+		print "Death? No choice or footnote: $id\n";
 		$node_attrs{color} = 'crimson';
 		$node_attrs{shape} = 'invtriangle';
 	}
