@@ -23,15 +23,11 @@ $, = ",";
 
 my @files = @ARGV;
 
-my $g;
-my %in_vertices;
-my %out_vertices;
-my $dict_obj; # book specific (rank-, discpline-dictionoaries, regexs etc.)
-
 for (@files) {
 	my ($name, $book_no) = m|((\d+)\w+)\..+$|;
 # 	print $book_no, $name;
 
+	my $dict_obj; # book specific (rank-, discpline-dictionoaries, regexs etc.)
 	given ( $book_no ) {
 		when ( 1  <= $_ and $_ <= 5  ) { $dict_obj = new Dictionary::Kai }
 		when ( 6  <= $_ and $_ <= 12 ) { $dict_obj = new Dictionary::Magnakai }
@@ -45,13 +41,12 @@ for (@files) {
 	open DOT, ">", $dot_file;
 
 	$time = time;
-	$g = {}; # reset graph
-	%in_vertices = ();
-	%out_vertices = ();
+	my $g = {}; # explicitly define as hashref in order to use it in a closure
 	XML::Twig->new(
 		twig_roots => {
-			'/gamebook/meta/title'                         => \&title,
-			'section[ @class="numbered" and @id=~/sect/ ]' => \&section,
+			'/gamebook/meta/title' => \&title,
+			'section[ @class="numbered" and @id=~/sect/ ]' =>
+				sub { section(@_, $dict_obj, $g) },
 		}
 	)->parsefile($_);
 	print "Parsing: ". (time - $time) ."\n";
@@ -70,15 +65,15 @@ for (@files) {
 	}
 	print "SCC: ". (time - $time) ."\n";
 	
-	print "No_in_vertices: ";
-	for (1 .. 350) {
-		print $_ . "," unless exists $in_vertices{$_};
+	my %in_vertices;
+	for ( values $g ) {
+		undef $in_vertices{$_} for @$_;
 	}
+	print "No_in_vertices: ";
+	print grep { not exists $in_vertices{$_} } (1..350);
 	print "\n";
 	print "No_out_vertices: ";
-	for (1 .. 350) {
-		print $_ . "," unless exists $out_vertices{$_};
-	}
+	print grep { not exists $g->{$_} } (1..350);
 	print "\n--------------------------------------------------------\n";
 }
 
@@ -95,7 +90,7 @@ sub title {
 }
 
 sub section {
-	my ($t,$elt) = @_;
+	my ($t, $elt, $dict_obj, $g) = @_;
 	# node attributes
 # 	my ($n_color, $n_fillcolor, $n_fontcolor, $n_peripheries, $n_shape, $n_label);
 	# edge attributes
@@ -128,8 +123,6 @@ sub section {
 				my ($idref) = $attr_idref =~ /sect(\d+)/;
 				my %edge_attrs;
 				push @{ $g->{$id} }, $idref;
-				undef $in_vertices{$idref};
-				undef $out_vertices{$id};
 
 				find_disc_rank($choice, \%edge_attrs, $dict_obj);
 
