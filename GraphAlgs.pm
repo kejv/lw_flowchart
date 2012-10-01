@@ -21,6 +21,7 @@ sub strongly_connected_components {
 		$vertices->{$v}{stack} = 1;
 		push @stack, $v;
 		
+		if ( exists $g->{$v} ) { # avoid autovivification
 		for my $w ( @{ $g->{$v} } ) {
 			if ( not defined $vertices->{$w}{index} ) {
 				$strong_connect->($w);
@@ -32,6 +33,7 @@ sub strongly_connected_components {
 					$vertices->{$v}{lowlink} = $vertices->{$w}{index}
 				}
 			}
+		}
 		}
 		
 		if ( $vertices->{$v}{lowlink} == $vertices->{$v}{index} ) {
