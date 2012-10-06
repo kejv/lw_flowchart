@@ -8,6 +8,7 @@ use Dictionary::Kai;
 use Dictionary::Magnakai;
 use Dictionary::Grandmaster;
 use GraphAlgs;
+use Util;
 
 use Data::Dumper qw/Dumper/;
 use IPC::Run qw/run/;
@@ -121,12 +122,11 @@ sub section {
 			my $attr_idref = $choice->att('idref');
 			if ( defined $attr_idref ) {
 				my ($idref) = $attr_idref =~ /sect(\d+)/;
-				my %edge_attrs;
 				push @{ $g->{$id} }, $idref;
 
-				find_disc_rank($choice, \%edge_attrs, $dict_obj);
+				my $edge_attrs = Util::find_conditions($choice, $dict_obj);
 
-				print_edge($id, $idref, %edge_attrs); 
+				print_edge($id, $idref, $edge_attrs);
 			} elsif ( @choices == 1 ) {
 				print "Death? $id\n";
 				$node_attrs{color} = 'crimson';
@@ -154,60 +154,6 @@ sub section {
 	$elt->purge;
 }
 
-sub find_disc_rank {
-	my ($choice, $edge_attrs, $dict_obj) = @_;
-
-	my $text = $choice->text;
-	my $skip_disc_rank = 0;
-	my @discs_ranks;
-	my %conj_pos;
-	my $disc = $dict_obj->disc;
-	my $rank = $dict_obj->rank;
-	my $re_choice = $dict_obj->re_choice;
-
-	# find choice items (disc, ranks) in choice and put corresponding
-	# conjunction as a value in a hash (indexed by ordering of choice items)
-	while ( $text =~ /$re_choice/og ) { # regexp is of the form (x|y|...)
-		if ( exists $disc->{$1} or exists $rank->{$1} ) {
-			if ( $skip_disc_rank ) {
-				print $text . "\n";
-				$skip_disc_rank = 0;
-			} else {
-				push @discs_ranks, $1;
-			}
-		} elsif ( exists $dict_obj->neg_conj->{$1} ) { # negative means to skip next disc_rank
-			$skip_disc_rank = 1;
-		} elsif ( @discs_ranks ) { # ignore conjunctions before first disc_rank
-			# possibly rewrite existing value so that only last one is valid
-			$conj_pos{ scalar @discs_ranks } = $1;
-		}
-	}
-
-	return '' unless @discs_ranks;
-
-	for ( keys %conj_pos ) { # ignore conjunctions after last disc_rank
-		delete $conj_pos{$_} unless $_ < @discs_ranks;
-	}
-	# defalut conj will be printed instead of commas in the choice text
-	my $default_conj = ( grep { $_ eq ' or ' } values %conj_pos ) ? ' or ' : ' and ';
-	print $text . $default_conj . "\n";
-
-	# get the abbrevs for the choice items
-	my @disc_rank_values;
-	push @disc_rank_values, $disc->{$_} // $rank->{$_} for @discs_ranks;
-	my $label = $disc_rank_values[0];
-	# join choice items together using conjs
-	for ( 1 .. $#disc_rank_values ) {
-		$label .= $conj_pos{$_} // $default_conj;
-		$label .= $disc_rank_values[$_];
-	}
-
-	print $text . "\n" if @disc_rank_values > 2;
-	$edge_attrs->{label}     = '"' .$label. '"';
-	$edge_attrs->{color}     = 'green';
-	$edge_attrs->{fontcolor} = 'green';
-}
-
 sub print_node {
 	my ($id, %node_attrs) = @_;
 	
@@ -220,12 +166,12 @@ sub print_node {
 }
 
 sub print_edge {
-	my ($id, $idref, %edge_attrs) = @_;
+	my ($id, $idref, $edge_attrs) = @_;
 	
 	print DOT "\t" .$id. " -> " .$idref;
-	if ( %edge_attrs ) {
+	if ( $edge_attrs ) {
 		print DOT " [";
-		print DOT join( ", ", map $_."=".$edge_attrs{$_}, keys %edge_attrs );
+		print DOT join( ", ", map $_."=".$edge_attrs->{$_}, keys %$edge_attrs );
 		print DOT "]";
 	}
 	print DOT "\n";
