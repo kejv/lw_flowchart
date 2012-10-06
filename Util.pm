@@ -18,10 +18,14 @@ sub find_conditions {
 	my ($choice, $dict_obj) = @_;
 
 	my $text = $choice->text;
+
 	# tag indicating to skip next choice item if preceded by negation
 	my $skip_choice_item = 0;
-	my @choice_items;
-	my %conj_pos;
+	my @choice_string;
+	my $curr_conj = 0; # really means undef, but the checks are easier this way
+	# defalut conj will be printed instead of commas in the choice text
+	my $default_conj = ' and ';
+
 	my $disc = $dict_obj->disc;
 	my $rank = $dict_obj->rank;
 	my $re_choice = $dict_obj->re_choice;
@@ -33,38 +37,37 @@ sub find_conditions {
 			if ( $skip_choice_item ) {
 				$skip_choice_item = 0;
 			} else {
-				push @choice_items, $1;
+			    # ignore any conj before first choice item
+			    if ( @choice_string ) {
+					push @choice_string, $curr_conj;
+					$default_conj = $curr_conj if $curr_conj eq ' or ';
+				}
+				push @choice_string, $1;
+
+				$curr_conj = 0;
 			}
-		} elsif ( exists $dict_obj->neg_conj->{$1} ) { # negative means to skip next disc_rank
+		} elsif ( exists $dict_obj->neg_conj->{$1} ) { # negative means to skip next choice item
 			$skip_choice_item = 1;
-		} elsif ( @choice_items ) { # ignore conjunctions before first disc_rank
-			# possibly rewrite existing value so that only last one is valid
-			$conj_pos{ scalar @choice_items } = $1;
+		} else { # we have a non-negative conjunction
+			$curr_conj = $1;
 		}
 	}
 
-	return '' unless @choice_items;
+	return '' unless @choice_string;
 
-	for ( keys %conj_pos ) { # ignore conjunctions after last disc_rank
-		delete $conj_pos{$_} unless $_ < @choice_items;
-	}
-	# defalut conj will be printed instead of commas in the choice text
-	my $default_conj = ( grep { $_ eq ' or ' } values %conj_pos ) ? ' or ' : ' and ';
 	print $text . $default_conj . "\n";
 
-	# get the abbrevs for the choice items
-	my @choice_items_values;
-	push @choice_items_values, $disc->{$_} // $rank->{$_} for @choice_items;
-	my $label = $choice_items_values[0];
-	# join choice items together using conjs
-	for ( 1 .. $#choice_items_values ) {
-		$label .= $conj_pos{$_} // $default_conj;
-		$label .= $choice_items_values[$_];
+	my @choice_string_values;
+	# array elements are either choice items (abbrev them),
+	# conjs (print them as is) or undef (print default conj)
+	for my $token ( @choice_string ) {
+		$token ||= $default_conj;
+		push @choice_string_values, $disc->{$token} // $rank->{$token} // $token;
 	}
 
-	print $text . "\n" if @choice_items_values > 2;
+	print $text . "\n" if @choice_string_values > 3;
 	return {
-		label     => '"' .$label. '"',
+		label     => '"' . join( '', @choice_string_values ) . '"',
 		color     => 'green',
 		fontcolor => 'green',
 	}
