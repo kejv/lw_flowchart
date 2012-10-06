@@ -32,7 +32,7 @@ sub find_conditions {
 
 	# find choice items (disc, ranks) in choice and put corresponding
 	# conjunction as a value in a hash (indexed by ordering of choice items)
-	while ( $text =~ /$re_choice/og ) { # regexp is of the form (x|y|...)
+	while ( $text =~ /$re_choice/g ) { # regexp is of the form (x|y|...)
 		if ( exists $disc->{$1} or exists $rank->{$1} ) {
 			if ( $skip_choice_item ) {
 				$skip_choice_item = 0;
