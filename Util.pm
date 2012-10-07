@@ -50,12 +50,22 @@ sub find_conditions {
 			$skip_choice_item = 1;
 		} else { # we have a non-negative conjunction
 			$curr_conj = $1;
+			if ( @choice_string and exists $rank->{ $choice_string[-1] } and
+				# \G matches the position of last successful match
+				$text =~ /\G((lower|less|below)|higher|more|above)/gc ) {
+				push @choice_string, defined $2 ? '-' : '+';
+			}
 		}
 	}
 
 	return '' unless @choice_string;
 
-	print $text . $default_conj . "\n";
+	if ( ( grep { exists $rank->{$_} } @choice_string ) > 1 ) {
+	    die "Unexpected condition when more ranks present" if @choice_string != 3;
+	    $choice_string[1] = '-';
+	}
+
+# 	print $text . $default_conj . "\n";
 
 	my @choice_string_values;
 	# array elements are either choice items (abbrev them),
@@ -65,7 +75,7 @@ sub find_conditions {
 		push @choice_string_values, $disc->{$token} // $rank->{$token} // $token;
 	}
 
-	print $text . "\n" if @choice_string_values > 3;
+# 	print $text . "\n" if @choice_string_values > 3;
 	return {
 		label     => '"' . join( '', @choice_string_values ) . '"',
 		color     => 'green',
