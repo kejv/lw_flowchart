@@ -33,6 +33,23 @@ sub _build_rank {
 	}
 }
 
+sub _build_item {
+	my $self = shift;
+	{
+		'Skarn-Ska'         => 'Ska',
+		'Blue Diamond'      => 'BlD',
+		'Black Amulet'      => 'BlA',
+		'Runic Disc'        => 'RuD',
+		'Black Token'       => 'BlT',
+		'Green Gem'         => 'GrG',
+		'Power Spike'       => 'PoS',
+		'Talisman of Ishir' => 'ToI',
+		'Iron Disc'         => 'IrD',
+		'Bronze Disc'       => 'BrD',
+	    %{ $self->SUPER::_build_item },
+	}
+}
+
 no Moose;
 
 1;

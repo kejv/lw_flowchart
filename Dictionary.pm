@@ -4,7 +4,7 @@ use Moose;
 
 # ATTRIBUTES
 
-for my $attr ( qw/disc rank neg_conj conj/ ) {
+for my $attr ( qw/disc rank item neg_conj conj dirait/ ) {
 	my $builder = '_build_' . $attr;
 	has $attr => (
 		is => 'ro',
@@ -31,9 +31,22 @@ sub _build_rank {
 	{}
 }
 
+sub _build_item {
+	{}
+}
+
+sub _build_dirait {
+	my $self = shift;
+
+	return {
+	    %{ $self->disc },
+	    %{ $self->rank },
+	    %{ $self->item },
+	}
+}
+
 sub _build_neg_conj {
 	{
-		' but '     => undef,
 		' not '     => undef,
 		' nor '     => undef,
 		' neither ' => undef,
@@ -52,10 +65,7 @@ sub _build_conj {
 sub _build_re_choice {
 	my $self = shift;
 
-	my $re = "(";
-	$re .= join "|", map keys %{ $self->$_ }, qw/disc rank conj/;
-	$re .= ")";
-
+	my $re = join "|", map keys %{ $self->$_ }, qw/dirait conj/;
 	return qr/$re/;
 }
 

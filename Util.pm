@@ -23,17 +23,18 @@ sub find_conditions {
 	my $skip_choice_item = 0;
 	my @choice_string;
 	my $curr_conj = 0; # really means undef, but the checks are easier this way
-	# defalut conj will be printed instead of commas in the choice text
+	# default conj will be printed instead of commas in the choice text
 	my $default_conj = ' and ';
 
-	my $disc = $dict_obj->disc;
+	# dirait = DIsc RAnk ITem
+	my $dirait = $dict_obj->dirait;
 	my $rank = $dict_obj->rank;
 	my $re_choice = $dict_obj->re_choice;
 
 	# find choice items (disc, ranks) in choice and put corresponding
 	# conjunction as a value in a hash (indexed by ordering of choice items)
-	while ( $text =~ /$re_choice/g ) { # regexp is of the form (x|y|...)
-		if ( exists $disc->{$1} or exists $rank->{$1} ) {
+	while ( $text =~ /($re_choice)/g ) { # regexp is of the form (x|y|...)
+		if ( exists $dirait->{$1} ) {
 			if ( $skip_choice_item ) {
 				$skip_choice_item = 0;
 			} else {
@@ -72,7 +73,7 @@ sub find_conditions {
 	# conjs (print them as is) or undef (print default conj)
 	for my $token ( @choice_string ) {
 		$token ||= $default_conj;
-		push @choice_string_values, $disc->{$token} // $rank->{$token} // $token;
+		push @choice_string_values, $dirait->{$token} // $token;
 	}
 
 # 	print $text . "\n" if @choice_string_values > 3;

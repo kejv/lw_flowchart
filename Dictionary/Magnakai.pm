@@ -30,6 +30,28 @@ sub _build_rank {
 	}
 }
 
+sub _build_item {
+	my $self = shift;
+	{
+		'Silver Bow of Duadon' => 'SBD',
+		'Helshezag'            => 'Hel',
+		'Kagonite Chainmail'   => 'KCh',
+		'Korlinium Scabbard'   => 'KSc',
+		'Silver Bracers'       => 'SBr',
+		'Psychic Ring'         => 'PsR',
+		'Ironheart Broadsword' => 'IrB',
+		'Bronin Vest'          => 'BrV',
+		'Lodestone'            => 'Lst',
+		'Grey Crystal Ring'    => 'GCR',
+		'Zejar-dulaga'         => 'Z-d',
+		'Invitation'           => 'Inv',
+		'Silver Rod'           => 'SiR',
+		'Platinum Amulet'      => 'PlA',
+		'Silver Whistle'       => 'SiW',
+	    %{ $self->SUPER::_build_item },
+	}
+}
+
 no Moose;
 
 1;

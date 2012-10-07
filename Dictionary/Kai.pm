@@ -28,6 +28,23 @@ sub _build_rank {
 	}
 }
 
+sub _build_item {
+	my $self = shift;
+	{
+		'Sommerswerd'          => 'Som',
+		'Magic Spear'          => 'MSp',
+		'Effigy'               => 'Eff',
+		'Dagger of Vashna'     => 'DoV',
+		'Jewelled Mace'        => 'JeM',
+		'Crystal Star Pendant' => 'CSP',
+		'Silver Helm'          => 'SHe',
+		'Firesphere'           => 'Fsp',
+		'Glowing Crystal'      => 'GlC',
+		'Silver Key'           => 'SiK',
+	    %{ $self->SUPER::_build_item },
+	}
+}
+
 no Moose;
 
 1;
