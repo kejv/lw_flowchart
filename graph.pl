@@ -30,9 +30,15 @@ for (@files) {
 
 	my $dict_obj; # book specific (rank-, discpline-dictionoaries, regexs etc.)
 	given ( $book_no ) {
-		when ( 1  <= $_ and $_ <= 5  ) { $dict_obj = new Dictionary::Kai }
-		when ( 6  <= $_ and $_ <= 12 ) { $dict_obj = new Dictionary::Magnakai }
-		when ( 13 <= $_ and $_ <= 20 ) { $dict_obj = new Dictionary::Grandmaster }
+		when ( 1  <= $_ and $_ <= 5  ) {
+			$dict_obj = Dictionary::Kai->new( { book_no => $book_no } )
+		}
+		when ( 6  <= $_ and $_ <= 12 ) {
+			$dict_obj = Dictionary::Magnakai->new( { book_no => $book_no } )
+		}
+		when ( 13 <= $_ and $_ <= 20 ) {
+			$dict_obj = Dictionary::Grandmaster->new( { book_no => $book_no } )
+		}
 		default { print "FIXME: book > 20\n"; next }
 	}
 
@@ -103,6 +109,8 @@ sub section {
 	my $id = ( $elt->get_xpath('meta/title') )[0]->text;
 	# choices elements
 	my @choices = $elt->get_xpath('data/choice');
+	# main text
+	my @paras = $elt->get_xpath('data/p');
 	# is big illustration present?
 	my $ill = $elt->get_xpath('data/illustration/meta/description');
 	# footnotes
@@ -115,6 +123,25 @@ sub section {
 	if ( $ill ) {
 		$node_attrs{peripheries} = 2;
 		$node_attrs{color} = 'purple';
+	}
+
+	my @items = ();
+	my $book_no = int $dict_obj->book_no;
+	if ( exists $dict_obj->default_item->{$book_no}->{$id} ) {
+	    @items = @{ $dict_obj->default_item->{$book_no}->{$id} };
+	} else {
+	    for my $para ( @paras ) {
+	        @items = ( @items, Util::find_items($para, $dict_obj) );
+		}
+	}
+	# item can be there more times so return it only once
+	my @uitems = keys %{ { map { $_ => 1 } @items } };
+	if ( @uitems ) {
+	    $node_attrs{shape}     = 'Mrecord';
+	    $node_attrs{margin}    = '0.11,0.055';
+# 	    $node_attrs{height}    = '0.6';
+	    $node_attrs{label}     = '"{\N|' . join( '|', @uitems ) . '}"';
+        $node_attrs{fontcolor} = 'blue';
 	}
 
 	if ( @choices ) {

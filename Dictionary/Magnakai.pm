@@ -33,22 +33,39 @@ sub _build_rank {
 sub _build_item {
 	my $self = shift;
 	{
-		'Silver Bow of Duadon' => 'SBD',
-		'Helshezag'            => 'Hel',
-		'Kagonite Chainmail'   => 'KCh',
-		'Korlinium Scabbard'   => 'KSc',
-		'Silver Bracers'       => 'SBr',
-		'Psychic Ring'         => 'PsR',
-		'Ironheart Broadsword' => 'IrB',
-		'Bronin Vest'          => 'BrV',
-		'Lodestone'            => 'Lst',
-		'Grey Crystal Ring'    => 'GCR',
-		'Zejar-dulaga'         => 'Z-d',
-		'Invitation'           => 'Inv',
-		'Silver Rod'           => 'SiR',
-		'Platinum Amulet'      => 'PlA',
-		'Silver Whistle'       => 'SiW',
-	    %{ $self->SUPER::_build_item },
+		'Silver Bow of Duadon' => 'SBD',#+ 6/252
+		'Helshezag'            => 'Hel',#/A
+		'Kagonite Chainmail'   => 'KCh',#+ 12/63
+		'Korlinium Scabbard'   => 'KSc',#/A
+		'Silver Bracers'       => 'SBr',#/A
+		'Psychic Ring'         => 'PsR',#/A
+		'Ironheart Broadsword' => 'IrB',#/A -11/144
+		'Bronin Vest'          => 'BrV',#/A
+		'Lodestone'            => 'Lst',#/A
+		'Grey Crystal Ring'    => 'GCR',#/A
+		'Zejar-dulaga'         => 'Z-d',#/A
+		'Invitation'           => 'Inv',#/A
+		'Silver Rod'           => 'SiR',#/A
+		'Platinum Amulet'      => 'PlA',#/A -20/296,89 (removed duplicates)
+		'Silver Whistle'       => 'SiW',#/A
+		'Ticket'               => 'Tic',#/A
+		'Shield'               => 'Shi',#/A
+		'Cess'                 => 'Ces',#/A
+		'Silver Brooch'        => 'SiB',#/A
+		'Map of Varetta'       => 'MoV',#/A
+		'Skeleton Key'         => 'SkK',#/A
+		'Gold Key'             => 'GoK',#/A
+		'Bullwhip'             => 'Bwh',#/A
+		'Medal'                => 'Med',#/A
+		%{ $self->SUPER::_build_item },
+	}
+}
+
+sub _build_default_item {
+	{
+	    6  => { 252 => [ 'Silver Bow of Duadon' ] },
+	    11 => { 144 => [] },
+	    12 => { 63  => [ 'Kagonite Chainmail' ] },
 	}
 }
 

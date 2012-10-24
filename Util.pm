@@ -5,6 +5,32 @@ use warnings FATAL => 'all';
 
 use Data::Dumper qw/Dumper/;
 
+#-------------------------------------------------------------------------------
+
+# Params:
+#   para element - XML::Twig::Elt object
+#   dictionary object specific to particular book - Dictionary::* object
+#
+# Find gained items in the text. Apply heuristic that when an item is mentioned
+# it is gained in this section iff there is also 'Action Chart.*Special Item'.
+# There are few exceptions to this rule, though, which must be handled individually.
+#
+# Returns:
+#   array of found items
+sub find_items {
+	my ($para, $dict_obj) = @_;
+	my $text = $para->text;
+	my $re_item = $dict_obj->re_item;
+
+	my @items = $text =~ /($re_item)/g; # regexp is of the form (x|y|...)
+	if ( @items and $text =~ /Action Chart/ and $text =~ /Special Item/ ) {
+		return @items;
+	} else {
+		return ();
+	}
+}
+
+
 # Params:
 #   choice element - XML::Twig::Elt object
 #   dictionary object specific to particular book - Dictionary::* object

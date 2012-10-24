@@ -4,7 +4,7 @@ use Moose;
 
 # ATTRIBUTES
 
-for my $attr ( qw/disc rank item neg_conj conj dirait/ ) {
+for my $attr ( qw/disc rank item neg_conj conj dirait default_item/ ) {
 	my $builder = '_build_' . $attr;
 	has $attr => (
 		is => 'ro',
@@ -14,11 +14,19 @@ for my $attr ( qw/disc rank item neg_conj conj dirait/ ) {
 	);
 }
 
-has 're_choice' => (
+for my $attr ( qw/re_choice re_item/ ) {
+	my $builder = '_build_' . $attr;
+	has $attr => (
+		is => 'ro',
+		isa => 'RegexpRef',
+		lazy => 1,
+		builder => $builder,
+	);
+}
+
+has book_no => (
 	is => 'ro',
-	isa => 'RegexpRef',
-	lazy => 1,
-	builder => '_build_re_choice',
+	isa => 'Int',
 );
 
 # BUILDERS
@@ -60,6 +68,17 @@ sub _build_conj {
 		' or '  => undef,
 		%{ shift->neg_conj }
 	}
+}
+
+sub _build_default_item {
+	{}
+}
+
+sub _build_re_item {
+	my $self = shift;
+
+	my $re = join "|", keys %{ $self->item };
+	return qr/$re/;
 }
 
 sub _build_re_choice {

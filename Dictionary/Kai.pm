@@ -31,17 +31,36 @@ sub _build_rank {
 sub _build_item {
 	my $self = shift;
 	{
-		'Sommerswerd'          => 'Som',
-		'Magic Spear'          => 'MSp',
-		'Effigy'               => 'Eff',
-		'Dagger of Vashna'     => 'DoV',
-		'Jewelled Mace'        => 'JeM',
-		'Crystal Star Pendant' => 'CSP',
-		'Silver Helm'          => 'SHe',
-		'Firesphere'           => 'Fsp',
-		'Glowing Crystal'      => 'GlC',
-		'Silver Key'           => 'SiK',
-	    %{ $self->SUPER::_build_item },
+		'Sommerswerd'          => 'Som',#+ 123
+		'Magic Spear'          => 'MSp',#/A
+		'Effigy'               => 'Eff',#/A
+		'Dagger of Vashna'     => 'DoV',#/A
+		'Jewelled Mace'        => 'JeM',#/A
+		'Crystal Star Pendant' => 'CSP',#+ 349
+		'Silver Helm'          => 'SHe',#/A
+		'Firesphere'           => 'Fsp',#/A
+		'Glowing Crystal'      => 'GlC',#/A
+		'Ornate Silver Key'    => 'OSK',#+ 3/280
+		'Blue Stone Triangle'  => 'BST',#/A +3/84, 309
+		'Blue Stone Disc'      => 'BSD',#/A
+		'Copper Key'           => 'CoK',#/A
+		'Diamond'              => 'Dia',#/A
+		'Onyx Medallion'       => 'OnM',#/A
+		'Scroll'               => 'Scr',#/A
+		'Black Crystal Cube'   => 'BCC',#/A
+		%{ $self->SUPER::_build_item },
+	}
+}
+
+sub _build_default_item {
+	{
+		1 => { 349 => [ 'Crystal Star Pendant' ] },
+		2 => { 123 => [ 'Sommerswerd' ] },
+		3 => {
+			84   => [ 'Blue Stone Triangle' ],
+			280  => [ 'Ornate Silver Key' ],
+			309  => [ 'Blue Stone Triangle', 'Firesphere' ],
+		},
 	}
 }
 
