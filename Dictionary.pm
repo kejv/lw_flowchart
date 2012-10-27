@@ -47,9 +47,9 @@ sub _build_dirait {
 	my $self = shift;
 
 	return {
-	    %{ $self->disc },
-	    %{ $self->rank },
-	    %{ $self->item },
+		%{ $self->disc },
+		%{ $self->rank },
+		%{ $self->item },
 	}
 }
 

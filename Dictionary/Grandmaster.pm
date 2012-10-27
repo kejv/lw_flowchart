@@ -46,13 +46,13 @@ sub _build_item {
 		'Talisman of Ishir' => 'ToI',#/B
 		'Iron Disc'         => 'IrD',#/A
 		'Bronze Disc'       => 'BrD',#/A
-	    %{ $self->SUPER::_build_item },
+		%{ $self->SUPER::_build_item },
 	}
 }
 
 sub _build_default_item {
 	{
-	    20 => { 269 => [ 'Blue Diamond' ] },
+		20 => { 269 => [ 'Blue Diamond' ] },
 	}
 }
 

@@ -64,8 +64,8 @@ sub find_conditions {
 			if ( $skip_choice_item ) {
 				$skip_choice_item = 0;
 			} else {
-			    # ignore any conj before first choice item
-			    if ( @choice_string ) {
+				# ignore any conj before first choice item
+				if ( @choice_string ) {
 					push @choice_string, $curr_conj;
 					$default_conj = $curr_conj if $curr_conj eq ' or ';
 				}
@@ -88,8 +88,8 @@ sub find_conditions {
 	return '' unless @choice_string;
 
 	if ( ( grep { exists $rank->{$_} } @choice_string ) > 1 ) {
-	    die "Unexpected condition when more ranks present" if @choice_string != 3;
-	    $choice_string[1] = '-';
+		die "Unexpected condition when more ranks present" if @choice_string != 3;
+		$choice_string[1] = '-';
 	}
 
 # 	print $text . $default_conj . "\n";

@@ -63,9 +63,9 @@ sub _build_item {
 
 sub _build_default_item {
 	{
-	    6  => { 252 => [ 'Silver Bow of Duadon' ] },
-	    11 => { 144 => [] },
-	    12 => { 63  => [ 'Kagonite Chainmail' ] },
+		6  => { 252 => [ 'Silver Bow of Duadon' ] },
+		11 => { 144 => [] },
+		12 => { 63  => [ 'Kagonite Chainmail' ] },
 	}
 }
 
