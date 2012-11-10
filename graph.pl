@@ -31,10 +31,10 @@ for (@files) {
 	my $dict_obj; # book specific (rank-, discpline-dictionoaries, regexs etc.)
 	given ( $book_no ) {
 		when ( 1  <= $_ and $_ <= 5  ) {
-			$dict_obj = Dictionary::Kai->new( { book_no => $book_no } )
+			$dict_obj = Dictionary::Kai        ->new( { book_no => $book_no } )
 		}
 		when ( 6  <= $_ and $_ <= 12 ) {
-			$dict_obj = Dictionary::Magnakai->new( { book_no => $book_no } )
+			$dict_obj = Dictionary::Magnakai   ->new( { book_no => $book_no } )
 		}
 		when ( 13 <= $_ and $_ <= 20 ) {
 			$dict_obj = Dictionary::Grandmaster->new( { book_no => $book_no } )
@@ -71,17 +71,23 @@ for (@files) {
 		print @$SCC,"\n" if @$SCC > 1;
 	}
 	print "SCC: ". (time - $time) ."\n";
-	
+
+	{
+	use List::Util qw(max);
+
 	my %in_vertices;
 	for ( values $g ) {
 		undef $in_vertices{$_} for @$_;
 	}
+	my $max_id = max keys %in_vertices;
+
 	print "No_in_vertices: ";
-	print grep { not exists $in_vertices{$_} } (1..350);
+	print grep { not exists $in_vertices{$_} } (1..$max_id);
 	print "\n";
 	print "No_out_vertices: ";
-	print grep { not exists $g->{$_} } (1..350);
+	print grep { not exists $g->{$_} } (1..$max_id);
 	print "\n--------------------------------------------------------\n";
+	}
 }
 
 # <STDIN>;
@@ -98,12 +104,6 @@ sub title {
 
 sub section {
 	my ($t, $elt, $dict_obj, $g) = @_;
-	# node attributes
-# 	my ($n_color, $n_fillcolor, $n_fontcolor, $n_peripheries, $n_shape, $n_label);
-	# edge attributes
-# 	my ($e_color, $e_fontcolor, $e_label);
-	
-	my %node_attrs;
 	
 	# section number
 	my $id = ( $elt->get_xpath('meta/title') )[0]->text;
@@ -113,21 +113,24 @@ sub section {
 	my @paras = $elt->get_xpath('data/p');
 	my @ul_lis = $elt->get_xpath('data/ul/li');
 	# is big illustration present?
-	my $ill = $elt->get_xpath('data/illustration/meta/description');
+	my $is_ill = $elt->get_xpath('data/illustration/meta/description');
 	# footnotes
 	my @footnotes = $elt->get_xpath('footnotes/footnote');
-	
-	if ( $id == 350 ) {
+
+	my %node_attrs;
+
+	my $book_no = int $dict_obj->book_no;
+	my $is_final_sect = $id == ( $book_no == 5 ? 400 : 350 );
+	if ( $is_final_sect ) {
 		$node_attrs{fillcolor} = 'gold';
 		$node_attrs{style} = 'filled';
 	}
-	if ( $ill ) {
+	if ( $is_ill ) {
 		$node_attrs{peripheries} = 2;
 		$node_attrs{color} = 'purple';
 	}
 
 	my @items = ();
-	my $book_no = int $dict_obj->book_no;
 	if ( exists $dict_obj->default_item->{$book_no}->{$id} ) {
 		@items = @{ $dict_obj->default_item->{$book_no}->{$id} };
 	} else {
@@ -146,7 +149,7 @@ sub section {
 	}
 	print "Uitems: ", @uitems, "\n" if @uitems > 1;
 
-	if ( @choices ) {
+	if ( @choices or $is_final_sect ) {
 		for my $choice ( @choices ) {
 			my $attr_idref = $choice->att('idref');
 			if ( defined $attr_idref ) {
@@ -178,20 +181,20 @@ sub section {
 		$node_attrs{shape} = 'invtriangle';
 	}
 
-	print_node($id, %node_attrs);
+	print_node($id, $is_final_sect, %node_attrs);
 
 	$elt->purge;
 }
 
 sub print_node {
-	my ($id, %node_attrs) = @_;
+	my ($id, $is_final_sect, %node_attrs) = @_;
 	
 	return unless %node_attrs;
 	
 	print DOT "\t" .$id. " [";
 	print DOT join( ", ", map $_."=".$node_attrs{$_}, keys %node_attrs );
 	print DOT "]\n";
-	print DOT "}" if $id == 350; # end of .dot file
+	print DOT "}" if $is_final_sect; # end of .dot file
 }
 
 sub print_edge {
