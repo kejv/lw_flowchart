@@ -12,18 +12,22 @@ use Data::Dumper qw/Dumper/;
 #   dictionary object specific to particular book - Dictionary::* object
 #
 # Find gained items in the text. Apply heuristic that when an item is mentioned
-# it is gained in this section iff there is also 'Action Chart.*Special Item'.
+# it is gained in this element iff there is also 'Action Chart' and 'Special Item'
+# or the element is <li>.
 # There are few exceptions to this rule, though, which must be handled individually.
 #
 # Returns:
 #   array of found items
 sub find_items {
-	my ($para, $dict_obj) = @_;
-	my $text = $para->text;
+	my ($para_or_li, $dict_obj) = @_;
+	my $is_li = $para_or_li->tag eq "li";
+	my $text = $para_or_li->xml_string;
 	my $re_item = $dict_obj->re_item;
 
 	my @items = $text =~ /($re_item)/g; # regexp is of the form (x|y|...)
-	if ( @items and $text =~ /Action Chart/ and $text =~ /Special Item/ ) {
+	if ( @items and
+		( $is_li or $text =~ /Action Chart/ and $text =~ /Special Item/ )
+	) {
 		return @items;
 	} else {
 		return ();
@@ -43,7 +47,7 @@ sub find_items {
 sub find_conditions {
 	my ($choice, $dict_obj) = @_;
 
-	my $text = $choice->text;
+	my $text = $choice->xml_string;
 
 	# tag indicating to skip next choice item if preceded by negation
 	my $skip_choice_item = 0;

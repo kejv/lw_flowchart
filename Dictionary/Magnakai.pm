@@ -57,6 +57,7 @@ sub _build_item {
 		'Gold Key'             => 'GoK',#/A
 		'Bullwhip'             => 'Bwh',#/A
 		'Medal'                => 'Med',#/A
+		'Black Key'            => 'BlK',#/ul
 		%{ $self->SUPER::_build_item },
 	}
 }

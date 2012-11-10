@@ -111,6 +111,7 @@ sub section {
 	my @choices = $elt->get_xpath('data/choice');
 	# main text
 	my @paras = $elt->get_xpath('data/p');
+	my @ul_lis = $elt->get_xpath('data/ul/li');
 	# is big illustration present?
 	my $ill = $elt->get_xpath('data/illustration/meta/description');
 	# footnotes
@@ -130,8 +131,8 @@ sub section {
 	if ( exists $dict_obj->default_item->{$book_no}->{$id} ) {
 		@items = @{ $dict_obj->default_item->{$book_no}->{$id} };
 	} else {
-		for my $para ( @paras ) {
-			@items = ( @items, Util::find_items($para, $dict_obj) );
+		for my $para_or_li ( @paras, @ul_lis ) {
+			@items = ( @items, Util::find_items($para_or_li, $dict_obj) );
 		}
 	}
 	# item can be there more times so return it only once

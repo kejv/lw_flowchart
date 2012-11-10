@@ -48,6 +48,7 @@ sub _build_item {
 		'Onyx Medallion'       => 'OnM',#/A
 		'Scroll'               => 'Scr',#/A
 		'Black Crystal Cube'   => 'BCC',#/A
+		'Gaoler<ch.apos/>s Keys' => 'GaK',#/ul
 		%{ $self->SUPER::_build_item },
 	}
 }
