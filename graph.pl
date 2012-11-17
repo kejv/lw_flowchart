@@ -156,8 +156,8 @@ sub section {
 
 	if ( @uitems or @combat_rows ) {
 		$node_attrs{shape}     = 'Mrecord';
-		$node_attrs{margin}    = '"0.11,0.03"';
-		$node_attrs{label}     = '"{\N|' . join( '|', @combat_rows, @uitems ) . '}"';
+		$node_attrs{margin}    = Util::qq_string( '0.11,0.03' );
+		$node_attrs{label}     = Util::qq_string( '{\N|' . join( '|', @combat_rows, @uitems ) . '}' );
 		$node_attrs{fontcolor} = 'blue' if @uitems;
 	}
 

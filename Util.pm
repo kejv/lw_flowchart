@@ -124,7 +124,9 @@ sub find_conditions {
 
 	# dirait = DIsc RAnk ITem
 	my $dirait = $dict_obj->dirait;
+	my $disc = $dict_obj->disc;
 	my $rank = $dict_obj->rank;
+	my $item = $dict_obj->item;
 	my $re_choice = $dict_obj->re_choice;
 
 	# find choice items (disc, ranks) in choice and put corresponding
@@ -172,11 +174,14 @@ sub find_conditions {
 		push @choice_string_values, $dirait->{$token} // $token;
 	}
 
-# 	print $text . "\n" if @choice_string_values > 3;
+	my $color =
+		( List::MoreUtils::any { exists $item->{$_} } @choice_string ) ? "blue" :
+		( List::MoreUtils::any { exists $disc->{$_} } @choice_string ) ? "green" :
+		"brown"; # default color for rank
 	return {
-		label     => '"' . join( '', @choice_string_values ) . '"',
-		color     => 'green',
-		fontcolor => 'green',
+		label     => qq_string( join( '', @choice_string_values ) ),
+		color     => $color,
+		fontcolor => $color,
 	}
 }
 
@@ -202,6 +207,10 @@ sub pretty_sprint {
 	}
 	substr $text, $best_pos, 0, "\\n" if $best_pos;
 	return $text;
+}
+
+sub qq_string {
+	return '"' .shift(). '"';
 }
 
 1;
