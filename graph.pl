@@ -96,8 +96,10 @@ for (@files) {
 
 # init .dot file
 sub title {
-	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n\tnode [label="\\N"]\n/;
+	print DOT qq/digraph "/ . $_->text . qq/: Paths" {\n/;
 # 	print DOT qq/\tnode [ordering="out"]\n/;
+	print DOT qq/\tnode [label="\\N"]\n/;
+	print DOT qq/\tgraph [margin=0.5]\n/;
 
 	$_->purge;
 }
@@ -154,8 +156,7 @@ sub section {
 
 	if ( @uitems or @combat_rows ) {
 		$node_attrs{shape}     = 'Mrecord';
-		$node_attrs{margin}    = '0.11';
-# 		$node_attrs{height}    = '0.6';
+		$node_attrs{margin}    = '"0.11,0.03"';
 		$node_attrs{label}     = '"{\N|' . join( '|', @combat_rows, @uitems ) . '}"';
 		$node_attrs{fontcolor} = 'blue' if @uitems;
 	}
