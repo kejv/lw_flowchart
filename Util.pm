@@ -3,7 +3,72 @@ package Util;
 use strict;
 use warnings FATAL => 'all';
 
+use List::MoreUtils;
 use Data::Dumper qw/Dumper/;
+
+#-------------------------------------------------------------------------------
+
+# Params:
+#   combat element - XML::Twig::Elt object
+#
+# Extract enemy name and its CS and EP from a combat element.
+# The next function can be easily modified to cover the functionality of this
+# function. So this one is kept here only for its simplicity.
+#
+# Returns:
+#   string representing one row in a future graphviz record
+sub handle_combat {
+    my ($enemy_str, $CS, $EP) = shift()->children_text();
+    return sprint_enemy( pretty_sprint($enemy_str), { CS => $CS, EP => $EP } );
+}
+
+# Params:
+#   array of combat elements - XML::Twig::Elt objects
+#
+# Magical version of previous function. It partitions combat elements to chunks
+# of two which it sprints side by side. It preserves the order of elements except
+# it prints element with the longest name last and on a separate row when there
+# is odd number of elements.
+#
+# Returns:
+#   array of strings each representing one row in a future graphviz record
+sub handle_combats {
+	my %combat; # storage for combat data
+	my @enemies; # determines the order of elements - should be same as on input
+	my $longest_enemy_str = "";
+
+	for my $combat ( @_ ) { # feed %combat and @enemies
+		my ($enemy_str, $CS, $EP) = $combat->children_text();
+		$longest_enemy_str = $enemy_str
+			if length $enemy_str >= length $longest_enemy_str;
+		push @enemies, $enemy_str;
+		$combat{$enemy_str} = { CS => $CS, EP => $EP };
+	}
+	@enemies = # move $longest_enemy_str to the end of @enemies
+		map { @$_ } List::MoreUtils::part { $_ eq $longest_enemy_str } @enemies
+		if @enemies % 2;
+
+	my @rows; # array of rows of future record
+	if ( @enemies == 2 ) { # don't pretty_sprint in case of 2 combats
+		push @rows, sprint_enemy( $_, $combat{$_} ) for @enemies;
+	} else {
+		my $it = List::MoreUtils::natatime 2, @enemies;
+		while ( my @enemy_pair = $it->() ) {
+			push @rows,
+				"{{" . join( "}|{",
+					map( sprint_enemy( pretty_sprint($_), $combat{$_} ), @enemy_pair )
+				) . "}}";
+		}
+	}
+	return @rows;
+}
+
+# Params:
+#   string, hashref with keys CS and EP
+sub sprint_enemy {
+	my ( $enemy_str, $enemy ) = @_;
+	return $enemy_str. "|{" .$enemy->{CS}. "|" .$enemy->{EP}. "}";
+}
 
 #-------------------------------------------------------------------------------
 
@@ -34,6 +99,7 @@ sub find_items {
 	}
 }
 
+#-------------------------------------------------------------------------------
 
 # Params:
 #   choice element - XML::Twig::Elt object
@@ -112,6 +178,30 @@ sub find_conditions {
 		color     => 'green',
 		fontcolor => 'green',
 	}
+}
+
+#-------------------------------------------------------------------------------
+
+# Params:
+#   string
+#
+# In a longer string replace a space closest to the middle with a newline.
+#
+# Returns:
+#   string
+sub pretty_sprint {
+	my $text = shift;
+	my $length = length $text;
+	return $text if $length < 13;
+
+	my $middle = (1 + $length)/2;
+	my $best_pos = 0;
+	while ( $text =~ / /g ) {
+		my $pos = pos $text;
+		$best_pos = $pos if abs($middle - $pos) <= abs($middle - $best_pos);
+	}
+	substr $text, $best_pos, 0, "\\n" if $best_pos;
+	return $text;
 }
 
 1;

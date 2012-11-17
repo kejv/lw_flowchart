@@ -112,6 +112,8 @@ sub section {
 	# main text
 	my @paras = $elt->get_xpath('data/p');
 	my @ul_lis = $elt->get_xpath('data/ul/li');
+	# combats
+	my @combats = $elt->get_xpath('data/combat');
 	# is big illustration present?
 	my $is_ill = $elt->get_xpath('data/illustration/meta/description');
 	# footnotes
@@ -130,6 +132,15 @@ sub section {
 		$node_attrs{color} = 'purple';
 	}
 
+	my $handle_combat = do {
+		given ( scalar @combats ) {
+		    when ( 0 ) { sub { return () } }
+		    when ( 1 ) { \&Util::handle_combat  }
+		    default    { \&Util::handle_combats }
+		}
+	};
+	my @combat_rows = $handle_combat->(@combats);
+
 	my @items = ();
 	if ( exists $dict_obj->default_item->{$book_no}->{$id} ) {
 		@items = @{ $dict_obj->default_item->{$book_no}->{$id} };
@@ -139,15 +150,15 @@ sub section {
 		}
 	}
 	# item can be there more times so return it only once
-	my @uitems = keys %{ { map { $_ => 1 } @items } };
-	if ( @uitems ) {
+	my @uitems = map Util::pretty_sprint($_), keys %{ { map { $_ => 1 } @items } };
+
+	if ( @uitems or @combat_rows ) {
 		$node_attrs{shape}     = 'Mrecord';
 		$node_attrs{margin}    = '0.11';
 # 		$node_attrs{height}    = '0.6';
-		$node_attrs{label}     = '"{\N|' . join( '|', @uitems ) . '}"';
-		$node_attrs{fontcolor} = 'blue';
+		$node_attrs{label}     = '"{\N|' . join( '|', @combat_rows, @uitems ) . '}"';
+		$node_attrs{fontcolor} = 'blue' if @uitems;
 	}
-	print "Uitems: ", @uitems, "\n" if @uitems > 1;
 
 	if ( @choices or $is_final_sect ) {
 		for my $choice ( @choices ) {
