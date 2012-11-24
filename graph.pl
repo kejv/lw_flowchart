@@ -110,17 +110,15 @@ sub section {
 	
 	# section number
 	my $id = ( $elt->get_xpath('meta/title') )[0]->text;
-	# choices elements
+
 	my @choices = $elt->get_xpath('data/choice');
-	# main text
+	my @puzzles = $elt->get_xpath('data/puzzle');
 	my @paras = $elt->get_xpath('data/p');
 	my @ul_lis = $elt->get_xpath('data/ul/li');
-	# combats
 	my @combats = $elt->get_xpath('data/combat');
-	# is big illustration present?
+
 	my $is_ill = $elt->get_xpath('data/illustration/meta/description');
-	# footnotes
-	my @footnotes = $elt->get_xpath('footnotes/footnote');
+	my $is_death = $elt->get_xpath('data/deadend');
 
 	my $node_attrs = {};
 
@@ -133,7 +131,12 @@ sub section {
 		$node_attrs->{peripheries} = 2;
 		$node_attrs->{color} = 'purple';
 	}
+	if ( $is_death ) {
+		$node_attrs->{color} = 'crimson';
+		$node_attrs->{shape} = 'invtriangle';
+	}
 
+	# handle combat
 	my $handle_combat = do {
 		given ( scalar @combats ) {
 		    when ( 0 ) { sub { return () } }
@@ -143,6 +146,7 @@ sub section {
 	};
 	my @combat_rows = $handle_combat->(@combats);
 
+	# find items in text
 	my @items = ();
 	if ( exists $dict_obj->default_item->{$book_no}->{$id} ) {
 		@items = @{ $dict_obj->default_item->{$book_no}->{$id} };
@@ -163,36 +167,20 @@ sub section {
 
 	print_node($id, $node_attrs) if %$node_attrs;
 
-	if ( @choices or $is_final_sect ) {
-		for my $choice ( @choices ) {
-			my $attr_idref = $choice->att('idref');
-			if ( defined $attr_idref ) {
-				my ($idref) = $attr_idref =~ /sect(\d+)/;
-				push @{ $g->{$id} }, $idref;
+	# find idrefs in choices or puzzles
+	for my $choice_or_puzzle ( @choices, @puzzles ) {
+		my $idref_str = $choice_or_puzzle->att('idref') // $choice_or_puzzle->att('idrefs');
+		my @attr_idrefs = split ' ', $idref_str if defined $idref_str;
+		for ( @attr_idrefs ) {
+			my ($idref) = /sect(\d+)/;
+			push @{ $g->{$id} }, $idref;
 
-				my $edge_attrs = Util::find_conditions($choice, $dict_obj);
+			my $edge_attrs = $choice_or_puzzle->tag eq "choice" ?
+				Util::find_conditions($choice_or_puzzle, $dict_obj) :
+				{ color => 'orange', fontcolor => 'orange' };
 
-				print_edge($id, $idref, $edge_attrs);
-			} elsif ( @choices == 1 ) {
-				print "Death? $id\n";
-				$node_attrs{color} = 'crimson';
-				$node_attrs{shape} = 'invtriangle';
-			} else {
-				if ( @footnotes ) {
-					print "Riddle with more choices? $id\n"; # correct, 9/314?, answer
-				} else {
-					print "Death with more choices? $id\n";
-				}
-			}
+			print_edge($id, $idref, $edge_attrs);
 		}
-	} elsif ( @footnotes ) {
-		print "Riddle? $id\n";
-		$node_attrs{color} = 'orange';
-		$node_attrs{shape} = 'triangle';
-	} else {
-		print "Death? No choice or footnote: $id\n";
-		$node_attrs{color} = 'crimson';
-		$node_attrs{shape} = 'invtriangle';
 	}
 
 	$elt->purge;
