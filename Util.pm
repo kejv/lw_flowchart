@@ -124,13 +124,13 @@ sub find_conditions {
 
 	# dirait = DIsc RAnk ITem
 	my $dirait = $dict_obj->dirait;
-	my $disc = $dict_obj->disc;
 	my $rank = $dict_obj->rank;
 	my $item = $dict_obj->item;
+	my $neg_conj = $dict_obj->neg_conj;
 	my $re_choice = $dict_obj->re_choice;
 
-	# find choice items (disc, ranks) in choice and put corresponding
-	# conjunction as a value in a hash (indexed by ordering of choice items)
+	# find choice conditions in choice element and put them in a array, separated
+	# by conjunctions
 	while ( $text =~ /($re_choice)/g ) { # regexp is of the form (x|y|...)
 		if ( exists $dirait->{$1} ) {
 			if ( $skip_choice_item ) {
@@ -145,7 +145,7 @@ sub find_conditions {
 
 				$curr_conj = 0;
 			}
-		} elsif ( exists $dict_obj->neg_conj->{$1} ) { # negative means to skip next choice item
+		} elsif ( exists $neg_conj->{$1} ) { # negative means to skip next choice item
 			$skip_choice_item = 1;
 		} else { # we have a non-negative conjunction
 			$curr_conj = $1;
@@ -157,7 +157,7 @@ sub find_conditions {
 		}
 	}
 
-	return '' unless @choice_string;
+	return {} unless @choice_string;
 
 	if ( ( grep { exists $rank->{$_} } @choice_string ) > 1 ) {
 		die "Unexpected condition when more ranks present" if @choice_string != 3;
@@ -174,6 +174,7 @@ sub find_conditions {
 		push @choice_string_values, $dirait->{$token} // $token;
 	}
 
+	my $disc = $dict_obj->disc;
 	my $color =
 		( List::MoreUtils::any { exists $item->{$_} } @choice_string ) ? "blue" :
 		( List::MoreUtils::any { exists $disc->{$_} } @choice_string ) ? "green" :

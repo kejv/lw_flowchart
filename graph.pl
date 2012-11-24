@@ -57,7 +57,8 @@ for (@files) {
 		}
 	)->parsefile($_);
 	print "Parsing: ". (time - $time) ."\n";
-	
+	print DOT "}"; # close dot file
+
 	close DOT;
 	
 	$time = time;
@@ -121,17 +122,16 @@ sub section {
 	# footnotes
 	my @footnotes = $elt->get_xpath('footnotes/footnote');
 
-	my %node_attrs;
+	my $node_attrs = {};
 
 	my $book_no = int $dict_obj->book_no;
-	my $is_final_sect = $id == ( $book_no == 5 ? 400 : 350 );
-	if ( $is_final_sect ) {
-		$node_attrs{fillcolor} = 'gold';
-		$node_attrs{style} = 'filled';
+	if ( $id == ( $book_no == 5 ? 400 : 350 ) ) {
+		$node_attrs->{fillcolor} = 'gold';
+		$node_attrs->{style} = 'filled';
 	}
 	if ( $is_ill ) {
-		$node_attrs{peripheries} = 2;
-		$node_attrs{color} = 'purple';
+		$node_attrs->{peripheries} = 2;
+		$node_attrs->{color} = 'purple';
 	}
 
 	my $handle_combat = do {
@@ -148,18 +148,20 @@ sub section {
 		@items = @{ $dict_obj->default_item->{$book_no}->{$id} };
 	} else {
 		for my $para_or_li ( @paras, @ul_lis ) {
-			@items = ( @items, Util::find_items($para_or_li, $dict_obj) );
+			push @items, Util::find_items($para_or_li, $dict_obj);
 		}
 	}
 	# item can be there more times so return it only once
 	my @uitems = map Util::pretty_sprint($_), keys %{ { map { $_ => 1 } @items } };
 
 	if ( @uitems or @combat_rows ) {
-		$node_attrs{shape}     = 'Mrecord';
-		$node_attrs{margin}    = Util::qq_string( '0.11,0.03' );
-		$node_attrs{label}     = Util::qq_string( '{\N|' . join( '|', @combat_rows, @uitems ) . '}' );
-		$node_attrs{fontcolor} = 'blue' if @uitems;
+		$node_attrs->{shape}     = 'Mrecord';
+		$node_attrs->{margin}    = Util::qq_string( '0.11,0.03' );
+		$node_attrs->{label}     = Util::qq_string( '{\N|' . join( '|', @combat_rows, @uitems ) . '}' );
+		$node_attrs->{fontcolor} = 'blue' if @uitems;
 	}
+
+	print_node($id, $node_attrs) if %$node_attrs;
 
 	if ( @choices or $is_final_sect ) {
 		for my $choice ( @choices ) {
@@ -193,29 +195,24 @@ sub section {
 		$node_attrs{shape} = 'invtriangle';
 	}
 
-	print_node($id, $is_final_sect, %node_attrs);
-
 	$elt->purge;
 }
 
 sub print_node {
-	my ($id, $is_final_sect, %node_attrs) = @_;
-	
-	return unless %node_attrs;
+	my ($id, $node_attrs) = @_;
 	
 	print DOT "\t" .$id. " [";
-	print DOT join( ", ", map $_."=".$node_attrs{$_}, keys %node_attrs );
+	print DOT join( ", ", map $_."=".$node_attrs->{$_}, keys $node_attrs );
 	print DOT "]\n";
-	print DOT "}" if $is_final_sect; # end of .dot file
 }
 
 sub print_edge {
 	my ($id, $idref, $edge_attrs) = @_;
 	
 	print DOT "\t" .$id. " -> " .$idref;
-	if ( $edge_attrs ) {
+	if ( %$edge_attrs ) {
 		print DOT " [";
-		print DOT join( ", ", map $_."=".$edge_attrs->{$_}, keys %$edge_attrs );
+		print DOT join( ", ", map $_."=".$edge_attrs->{$_}, keys $edge_attrs );
 		print DOT "]";
 	}
 	print DOT "\n";
