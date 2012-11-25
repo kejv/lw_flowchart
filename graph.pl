@@ -68,19 +68,23 @@ for (@files) {
 	print "Dot: ". (time - $time) ."\n";
 	
 	$time = time;
-	for my $SCC ( @{ GraphAlgs::strongly_connected_components($g_edges) } ) {
-		print @$SCC,"\n" if @$SCC > 1;
+	my ($g_condensed, $clusters) = GraphAlgs::condense($g_edges);
+	for ( keys $g_condensed ) {
+		print $_, Dumper $g_condensed->{$_} if /cluster/;
 	}
-	print "SCC: ". (time - $time) ."\n";
+	print Dumper $clusters;
+	print "Condense: ". (time - $time) ."\n";
+
+	GraphAlgs::graphviz($g_condensed, $clusters);
 
 	{
-	use List::Util qw(max);
+	use List::Util;
 
 	my %in_vertices;
 	for ( values $g_edges ) {
 		undef $in_vertices{$_} for keys $_;
 	}
-	my $max_id = max keys %in_vertices;
+	my $max_id = List::Util::max( keys %in_vertices );
 
 	print "No_in_vertices: ";
 	print grep { not exists $in_vertices{$_} } (1..$max_id);
