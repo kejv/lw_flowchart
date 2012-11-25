@@ -48,12 +48,12 @@ for (@files) {
 	open DOT, ">", $dot_file;
 
 	$time = time;
-	my $g = {}; # explicitly define as hashref in order to use it in a closure
+	my $g_edges = {}; # explicitly define as hashref in order to use it in a closure
 	XML::Twig->new(
 		twig_roots => {
 			'/gamebook/meta/title' => \&title,
 			'section[ @class="numbered" and @id=~/sect/ ]' =>
-				sub { section(@_, $dict_obj, $g) },
+				sub { section(@_, $dict_obj, $g_edges) },
 		}
 	)->parsefile($_);
 	print "Parsing: ". (time - $time) ."\n";
@@ -68,7 +68,7 @@ for (@files) {
 	print "Dot: ". (time - $time) ."\n";
 	
 	$time = time;
-	for my $SCC ( @{ GraphAlgs::strongly_connected_components($g) } ) {
+	for my $SCC ( @{ GraphAlgs::strongly_connected_components($g_edges) } ) {
 		print @$SCC,"\n" if @$SCC > 1;
 	}
 	print "SCC: ". (time - $time) ."\n";
@@ -77,8 +77,8 @@ for (@files) {
 	use List::Util qw(max);
 
 	my %in_vertices;
-	for ( values $g ) {
-		undef $in_vertices{$_} for @$_;
+	for ( values $g_edges ) {
+		undef $in_vertices{$_} for keys $_;
 	}
 	my $max_id = max keys %in_vertices;
 
@@ -86,7 +86,7 @@ for (@files) {
 	print grep { not exists $in_vertices{$_} } (1..$max_id);
 	print "\n";
 	print "No_out_vertices: ";
-	print grep { not exists $g->{$_} } (1..$max_id);
+	print grep { not exists $g_edges->{$_} } (1..$max_id);
 	print "\n--------------------------------------------------------\n";
 	}
 }
@@ -106,7 +106,7 @@ sub title {
 }
 
 sub section {
-	my ($t, $elt, $dict_obj, $g) = @_;
+	my ($t, $elt, $dict_obj, $g_edges) = @_;
 	
 	# section number
 	my $id = ( $elt->get_xpath('meta/title') )[0]->text;
@@ -173,7 +173,7 @@ sub section {
 		my @attr_idrefs = split ' ', $idref_str if defined $idref_str;
 		for ( @attr_idrefs ) {
 			my ($idref) = /sect(\d+)/;
-			push @{ $g->{$id} }, $idref;
+			$g_edges->{$id}{$idref} = {};
 
 			my $edge_attrs = $choice_or_puzzle->tag eq "choice" ?
 				Util::find_conditions($choice_or_puzzle, $dict_obj) :
@@ -189,9 +189,7 @@ sub section {
 sub print_node {
 	my ($id, $node_attrs) = @_;
 	
-	print DOT "\t" .$id. " [";
-	print DOT join( ", ", map $_."=".$node_attrs->{$_}, keys $node_attrs );
-	print DOT "]\n";
+	print DOT "\t$id " . sprint_attrs($node_attrs) . "\n";
 }
 
 sub print_edge {
@@ -204,4 +202,10 @@ sub print_edge {
 		print DOT "]";
 	}
 	print DOT "\n";
+}
+
+
+sub sprint_attrs {
+	my $attrs = shift;
+	return "[" . join( ", ", map $_."=".$attrs->{$_}, keys $attrs ) . "]";
 }

@@ -19,7 +19,7 @@ use Data::Dumper qw/Dumper/;
 #   string representing one row in a future graphviz record
 sub handle_combat {
     my ($enemy_str, $CS, $EP) = map $_->xml_string(), shift()->children();
-    return sprint_enemy( pretty_sprint($enemy_str), { CS => $CS, EP => $EP } );
+    return sprint_enemy( { name => pretty_sprint($enemy_str), CS => $CS, EP => $EP } );
 }
 
 # Params:
@@ -50,13 +50,15 @@ sub handle_combats {
 
 	my @rows; # array of rows of future record
 	if ( @enemies == 2 ) { # don't pretty_sprint in case of 2 combats
-		push @rows, sprint_enemy( elts2chars($_), $combat{$_} ) for @enemies;
+		push @rows, sprint_enemy( { name => elts2chars($_), %{ $combat{$_} } } )
+			for @enemies;
 	} else {
 		my $it = List::MoreUtils::natatime 2, @enemies;
 		while ( my @enemy_pair = $it->() ) {
 			push @rows,
 				"{{" . join( "}|{",
-					map( sprint_enemy( pretty_sprint($_), $combat{$_} ), @enemy_pair )
+					map( sprint_enemy( { name => pretty_sprint($_), %{ $combat{$_} } } ),
+						@enemy_pair )
 				) . "}}";
 		}
 	}
@@ -64,10 +66,10 @@ sub handle_combats {
 }
 
 # Params:
-#   string, hashref with keys CS and EP
+#   hashref with keys name, CS and EP
 sub sprint_enemy {
-	my ( $enemy_str, $enemy ) = @_;
-	return $enemy_str. "|{" .$enemy->{CS}. "|" .$enemy->{EP}. "}";
+	my $enemy = shift;
+	return $enemy->{name}. "|{" .$enemy->{CS}. "|" .$enemy->{EP}. "}";
 }
 
 #-------------------------------------------------------------------------------
